@@ -15,7 +15,7 @@ namespace 商店
 		private Config config;
 		public override Version Version
 		{
-			get { return new Version("1.2.0.0"); }
+			get { return new Version("1.3.0.0"); }
 		}
 		public override string Name
 		{
@@ -64,7 +64,7 @@ namespace 商店
 		private void 买(CommandArgs args)
 		{
 			var rn = Main.rand.Next(1, 1000);
-			if (rn == 520) 
+			if (rn == 520)
 			{
 				args.Player.SendSuccessMessage("恋恋喜欢彩铅哦呐~");
 			}
@@ -81,13 +81,20 @@ namespace 商店
 				var lines = new List<string>{};
 				foreach (var 商品1 in config.All)
 				{
-					string perm = args.Player.Group.HasPermission(商品1.权限) ? "[可购买]" : "[无权限]";
 					string total = "商品名:" + 商品1.品名 + " 价格:" + 商品1.价格 + " 内容:";
 					foreach (var item in 商品1.包含物品)
 					{
 						total = total + 物品转标签(item);
 					}
-					lines.Add(total);
+					if (args.Player.Group.HasPermission(商品1.权限))
+					{
+						lines.Add(total);
+					}
+					else if (!config.隐藏不可购买的物品)
+					{
+						string perm = args.Player.Group.HasPermission(商品1.权限) ? "[可购买]" : "[无权限]";
+						lines.Add(perm + total);
+					}
 				}
 				PaginationTools.SendPage(args.Player, pageNumber, lines,
 				                         new PaginationTools.Settings
@@ -108,7 +115,7 @@ namespace 商店
 					匹配 = true;
 				}
 			}
-			if (!匹配)
+			if (!匹配 || (!args.Player.Group.HasPermission(购入物.权限) && config.隐藏不可购买的物品))
 			{
 				args.Player.SendErrorMessage("[商店插件]没有该商品. 输入/买 菜单 查看所有可购买物品.");
 				return;
@@ -186,6 +193,13 @@ namespace 商店
 						{
 							var configString = sr.ReadToEnd();
 							config = JsonConvert.DeserializeObject<Config>(configString);
+							foreach (var element in config.All) 
+							{
+								foreach (var element2 in element.包含物品) 
+								{
+									element2.补全();
+								}
+							}
 						}
 						stream.Close();
 					}
@@ -217,10 +231,12 @@ namespace 商店
 	public class Config
 	{
 		public List<商品> All;
+		public bool 隐藏不可购买的物品;
 		public Config()
 		{}
 		public Config(int a)
 		{
+			隐藏不可购买的物品 = true;
 			All = new List<商品>{new 商品(1), new 商品(2)};
 		}
 	}
@@ -258,10 +274,17 @@ namespace 商店
 		public int 编号 = 0;
 		public int 数量 = 1;
 		public int 前缀 = 0;
+		public string 名称 = "";
 		public 物品() {}
 		public 物品(int a)
 		{
-			this.编号 = a;
+			this.名称 = TShockAPI.Utils.Instance.GetItemByIdOrName(a.ToString())[0].name;
+			this.编号 = TShockAPI.Utils.Instance.GetItemByIdOrName(a.ToString())[0].type;
+		}
+		public void 补全()
+		{
+			this.编号 = TShockAPI.Utils.Instance.GetItemByIdOrName((编号 != 0) ? 编号.ToString() : 名称)[0].type;
+			this.名称 = TShockAPI.Utils.Instance.GetItemByIdOrName(编号.ToString())[0].name;
 		}
 	}
 }

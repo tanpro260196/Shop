@@ -9,7 +9,7 @@
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>Shop</RootNamespace>
-    <AssemblyName>Shop v1.2</AssemblyName>
+    <AssemblyName>Shop v1.3</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <TargetFrameworkProfile />
@@ -54,7 +54,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Newtonsoft.Json">
-      <HintPath>J:\TAC\泰拉瑞亚1.3.0.8汉化\ServerPlugins\Newtonsoft.Json.dll</HintPath>
+      <HintPath>..\Reference\Newtonsoft.Json.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />

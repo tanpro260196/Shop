@@ -15,7 +15,7 @@ namespace Shop
 		private Config config;
 		public override Version Version
 		{
-			get { return new Version("1.2.0.0"); }
+			get { return new Version("1.3.0.0"); }
 		}
 		public override string Name
 		{
@@ -62,13 +62,20 @@ namespace Shop
 				var lines = new List<string>{};
 				foreach (var gooda in config.All)
 				{
-					string perm = args.Player.Group.HasPermission(gooda.RequirePermission) ? "[Available]" : "[Shortage]";
 					string total = "Name:" + gooda.DisplayName + " Price:" + gooda.Price + " Include:";
 					foreach (var item in gooda.IncludeItems)
 					{
 						total = total + ItemToTag(item);
 					}
-					lines.Add(total);
+					if (args.Player.Group.HasPermission(gooda.RequirePermission))
+					{
+						lines.Add(total);
+					}
+					else if (!config.HideUnavailableGoods)
+					{
+						string perm = args.Player.Group.HasPermission(gooda.RequirePermission) ? "[Available]" : "[Shortage]";
+						lines.Add(perm + total);
+					}
 				}
 				PaginationTools.SendPage(args.Player, pageNumber, lines,
 				                         new PaginationTools.Settings
@@ -89,7 +96,7 @@ namespace Shop
 					FindSuccess = true;
 				}
 			}
-			if (!FindSuccess)
+			if ((!FindSuccess) || (!args.Player.Group.HasPermission(Find.RequirePermission) && config.HideUnavailableGoods))
 			{
 				args.Player.SendErrorMessage("[Shop]Can't find a good with given name. Type {0}buy menu for list.");
 				return;
@@ -167,6 +174,13 @@ namespace Shop
 						{
 							var configString = sr.ReadToEnd();
 							config = JsonConvert.DeserializeObject<Config>(configString);
+							foreach (var element in config.All) 
+							{
+								foreach (var element2 in element.IncludeItems) 
+								{
+									element2.Full();
+								}
+							}
 						}
 						stream.Close();
 					}
@@ -198,10 +212,12 @@ namespace Shop
 	public class Config
 	{
 		public List<Goods> All;
+		public bool HideUnavailableGoods;
 		public Config()
 		{}
 		public Config(int a)
 		{
+			HideUnavailableGoods = true;
 			All = new List<Goods>{new Goods(1), new Goods(2)};
 		}
 	}
@@ -240,10 +256,19 @@ namespace Shop
 		public int netID = 0;
 		public int stack = 1;
 		public int prefix = 0;
+		public string name = "";
 		public SimpleItem() {}
 		public SimpleItem(int a)
 		{
-			this.netID = a;
+			this.name = TShockAPI.Utils.Instance.GetItemByIdOrName(a.ToString())[0].name;
+			this.netID = TShockAPI.Utils.Instance.GetItemByIdOrName(a.ToString())[0].type;
+		}
+		public void Full()
+		{
+			this.netID = TShockAPI.Utils.Instance.GetItemByIdOrName((netID != 0) ? netID.ToString() : name)[0].type;
+			this.name = TShockAPI.Utils.Instance.GetItemByIdOrName(netID.ToString())[0].name;
+			this.stack = this.stack;
+			this.prefix = this.prefix;
 		}
 	}
 }
