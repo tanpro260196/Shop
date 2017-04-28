@@ -57,6 +57,9 @@
     <Reference Include="Newtonsoft.Json">
       <HintPath>..\Reference\Newtonsoft.Json.dll</HintPath>
     </Reference>
+    <Reference Include="OTAPI">
+      <HintPath>..\..\Buildmode-master\BuildMode\References\OTAPI.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />

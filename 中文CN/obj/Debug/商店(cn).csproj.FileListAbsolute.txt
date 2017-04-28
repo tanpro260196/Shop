@@ -1,0 +1,17 @@
+D:\Downloads\Compressed\Source Code\Shop-master\中文CN\bin\Debug\商店插件v1.3.dll
+D:\Downloads\Compressed\Source Code\Shop-master\中文CN\bin\Debug\商店插件v1.3.pdb
+D:\Downloads\Compressed\Source Code\Shop-master\中文CN\bin\Debug\Newtonsoft.Json.dll
+D:\Downloads\Compressed\Source Code\Shop-master\中文CN\bin\Debug\OTAPI.dll
+D:\Downloads\Compressed\Source Code\Shop-master\中文CN\bin\Debug\TerrariaServer.exe
+D:\Downloads\Compressed\Source Code\Shop-master\中文CN\bin\Debug\TShockAPI.dll
+D:\Downloads\Compressed\Source Code\Shop-master\中文CN\bin\Debug\Wolfje.Plugins.SEconomy.CmdAliasModule.dll
+D:\Downloads\Compressed\Source Code\Shop-master\中文CN\bin\Debug\Wolfje.Plugins.SEconomy.dll
+D:\Downloads\Compressed\Source Code\Shop-master\中文CN\bin\Debug\Wolfje.Plugins.SEconomy.JistAliasModule.dll
+D:\Downloads\Compressed\Source Code\Shop-master\中文CN\bin\Debug\MySql.Data.dll
+D:\Downloads\Compressed\Source Code\Shop-master\中文CN\bin\Debug\HttpServer.dll
+D:\Downloads\Compressed\Source Code\Shop-master\中文CN\bin\Debug\BCrypt.Net.dll
+D:\Downloads\Compressed\Source Code\Shop-master\中文CN\bin\Debug\Mono.Data.Sqlite.dll
+D:\Downloads\Compressed\Source Code\Shop-master\中文CN\bin\Debug\Wolfje.Plugins.Jist.dll
+D:\Downloads\Compressed\Source Code\Shop-master\中文CN\obj\Debug\商店(cn).csprojResolveAssemblyReference.cache
+D:\Downloads\Compressed\Source Code\Shop-master\中文CN\obj\Debug\商店插件v1.3.dll
+D:\Downloads\Compressed\Source Code\Shop-master\中文CN\obj\Debug\商店插件v1.3.pdb
