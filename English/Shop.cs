@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Linq;
 using System.Collections.Generic;
@@ -9,13 +9,13 @@ using TerrariaApi.Server;
 using Wolfje.Plugins.SEconomy;
 namespace Shop
 {
-	[ApiVersion(1, 22)]
+	[ApiVersion(2, 1)]
 	public class Shop : TerrariaPlugin
 	{
 		private Config config;
 		public override Version Version
 		{
-			get { return new Version("1.3.0.0"); }
+			get { return new Version("1.3.0.1"); }
 		}
 		public override string Name
 		{
@@ -51,7 +51,7 @@ namespace Shop
 		{
 			if ((args.Parameters.Count < 1) || ((args.Parameters.Count > 1)  && (args.Parameters[0] != "menu")))
 			{
-				args.Player.SendErrorMessage("[Shop]Usage: /buy name or /buy menu");
+				args.Player.SendErrorMessage("Check out our Shop, use: /buy name or /buy menu");
 				return;
 			}
 			if (args.Parameters[0] == "menu")
@@ -62,10 +62,10 @@ namespace Shop
 				var lines = new List<string>{};
 				foreach (var gooda in config.All)
 				{
-					string total = "Name:" + gooda.DisplayName + " Price:" + gooda.Price + " Include:";
+					string total = "Name: " + gooda.DisplayName + Environment.NewLine + "Price: " + gooda.Price + " copper"+ Environment.NewLine +"Include: ";
 					foreach (var item in gooda.IncludeItems)
 					{
-						total = total + ItemToTag(item);
+						total = total + ItemToTag(item)+ Environment.NewLine;
 					}
 					if (args.Player.Group.HasPermission(gooda.RequirePermission))
 					{
@@ -77,13 +77,14 @@ namespace Shop
 						lines.Add(perm + total);
 					}
 				}
-				PaginationTools.SendPage(args.Player, pageNumber, lines,
-				                         new PaginationTools.Settings
-				                         {
-				                         	HeaderFormat = "[Shop]Menu({0}/{1}):",
-				                         	FooterFormat = "Type {0}buy menu {{0}} for more goods.".SFormat(Commands.Specifier)
-				                         }
-				                        );
+                PaginationTools.SendPage(args.Player, pageNumber, lines,
+                                         new PaginationTools.Settings
+                                         {
+                                             HeaderFormat = "Menu({0}/{1}):",
+                                             FooterFormat = "Type {0}buy menu {{0}} for more goods.".SFormat(Commands.Specifier),
+                                             MaxLinesPerPage = 2
+                                         }
+                                        );
 				return;
 			}
 			var Find = new Goods();
@@ -98,12 +99,12 @@ namespace Shop
 			}
 			if ((!FindSuccess) || (!args.Player.Group.HasPermission(Find.RequirePermission) && config.HideUnavailableGoods))
 			{
-				args.Player.SendErrorMessage("[Shop]Can't find a good with given name. Type {0}buy menu for list.");
+				args.Player.SendErrorMessage("Can't find a good with given name. Type {0}buy menu for list.");
 				return;
 			}
 			if (!args.Player.Group.HasPermission(Find.RequirePermission))
 			{
-				args.Player.SendErrorMessage("[Shop]There is a shortage! Why not try another goods?");
+				args.Player.SendErrorMessage("There is a shortage! Why not try another goods?");
 				return;
 			}
 			var UsernameBankAccount = SEconomyPlugin.Instance.GetBankAccount(args.Player.Name);
@@ -118,7 +119,7 @@ namespace Shop
 			}
 			if (playeramount < amount2)
 			{
-				args.Player.SendErrorMessage("The price of " + Find.DisplayName + " is " + Find.Price	 + ", but you have " + UsernameBankAccount.Balance + " only.");
+				args.Player.SendErrorMessage("The price of " + Find.DisplayName + " is " + Find.Price	 + " copper, but you only have " + UsernameBankAccount.Balance + " in you account.");
 				return;
 			}
 			if (!args.Player.InventorySlotAvailable)
@@ -129,15 +130,15 @@ namespace Shop
 			SEconomyPlugin.Instance.WorldAccount.TransferToAsync(UsernameBankAccount, amount,
 			                                                     Journalpayment, string.Format("Pay {0} to shop", amount2),
 			                                                     string.Format("Buying"));
-			args.Player.SendSuccessMessage("You have paid {0} for buying {1}.", amount2, Find.DisplayName);
-			TShock.Log.ConsoleInfo("[Shop]{0} has paid {2} for buying {1}.", args.Player.Name, Find.DisplayName, amount2);
+			args.Player.SendSuccessMessage("You have paid {0} to buy {1}.", amount2, Find.DisplayName);
+			TShock.Log.ConsoleInfo("{0} has paid {2} to buy {1}.", args.Player.Name, Find.DisplayName, amount2);
 			foreach (var item in Find.IncludeItems)
 			{
 				var q = new Item();
 				q.netDefaults(item.netID);
 				q.stack = item.stack;
 				q.Prefix(item.prefix);
-				args.Player.GiveItemCheck(q.type, q.name, q.width, q.height, q.stack, q.prefix);
+				args.Player.GiveItemCheck(q.type, q.Name, q.width, q.height, q.stack, q.prefix);
 			}
 		}
 		private void CreateConfig()
@@ -203,10 +204,10 @@ namespace Shop
 		{
 			if (ReadConfig())
 			{
-				args.Player.SendInfoMessage("[Shop]Load success.");
+				args.Player.SendInfoMessage("Load success.");
 				return;
 			}
-			args.Player.SendErrorMessage("[Shop]Load fails. Check log for more details.");
+			args.Player.SendErrorMessage("Load fails. Check log for more details.");
 		}
 	}
 	public class Config
@@ -260,13 +261,13 @@ namespace Shop
 		public SimpleItem() {}
 		public SimpleItem(int a)
 		{
-			this.name = TShockAPI.Utils.Instance.GetItemByIdOrName(a.ToString())[0].name;
+			this.name = TShockAPI.Utils.Instance.GetItemByIdOrName(a.ToString())[0].Name;
 			this.netID = TShockAPI.Utils.Instance.GetItemByIdOrName(a.ToString())[0].type;
 		}
 		public void Full()
 		{
 			this.netID = TShockAPI.Utils.Instance.GetItemByIdOrName((netID != 0) ? netID.ToString() : name)[0].type;
-			this.name = TShockAPI.Utils.Instance.GetItemByIdOrName(netID.ToString())[0].name;
+			this.name = TShockAPI.Utils.Instance.GetItemByIdOrName(netID.ToString())[0].Name;
 			this.stack = this.stack;
 			this.prefix = this.prefix;
 		}
