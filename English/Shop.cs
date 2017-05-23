@@ -62,10 +62,10 @@ namespace Shop
 				var lines = new List<string>{};
 				foreach (var gooda in config.All)
 				{
-					string total = "Name: " + gooda.DisplayName + Environment.NewLine + "Price: " + gooda.Price + " copper"+ Environment.NewLine +"Include: ";
+					string total = "* " + gooda.DisplayName + " - ";
 					foreach (var item in gooda.IncludeItems)
 					{
-						total = total + ItemToTag(item)+ Environment.NewLine;
+						total = total + ItemToTag(item) +" - "+ Wolfje.Plugins.SEconomy.Money.Parse(Convert.ToString(gooda.Price));
 					}
 					if (args.Player.Group.HasPermission(gooda.RequirePermission))
 					{
@@ -80,9 +80,9 @@ namespace Shop
                 PaginationTools.SendPage(args.Player, pageNumber, lines,
                                          new PaginationTools.Settings
                                          {
-                                             HeaderFormat = "Menu({0}/{1}):",
+                                             HeaderFormat = "Menu ({0}/{1}):",
                                              FooterFormat = "Type {0}buy menu {{0}} for more goods.".SFormat(Commands.Specifier),
-                                             MaxLinesPerPage = 2
+                                             MaxLinesPerPage = 9
                                          }
                                         );
 				return;
@@ -99,7 +99,7 @@ namespace Shop
 			}
 			if ((!FindSuccess) || (!args.Player.Group.HasPermission(Find.RequirePermission) && config.HideUnavailableGoods))
 			{
-				args.Player.SendErrorMessage("Can't find a good with given name. Type {0}buy menu for list.");
+				args.Player.SendErrorMessage("Can't find a good with given name. Type /buy menu for list.");
 				return;
 			}
 			if (!args.Player.Group.HasPermission(Find.RequirePermission))
@@ -129,7 +129,7 @@ namespace Shop
 			}
 			SEconomyPlugin.Instance.WorldAccount.TransferToAsync(UsernameBankAccount, amount,
 			                                                     Journalpayment, string.Format("Pay {0} to shop", amount2),
-			                                                     string.Format("Buying"));
+			                                                     string.Format("Buying" + Find.DisplayName));
 			args.Player.SendSuccessMessage("You have paid {0} to buy {1}.", amount2, Find.DisplayName);
 			TShock.Log.ConsoleInfo("{0} has paid {2} to buy {1}.", args.Player.Name, Find.DisplayName, amount2);
 			foreach (var item in Find.IncludeItems)
