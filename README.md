@@ -1,4 +1,4 @@
 # Shop
 Shop plugin for TShock.
 
-Rewrite /buy menu command for Better visual (and English).
+Rewrite /buy menu command for better visual (and English).
