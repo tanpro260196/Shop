@@ -7,12 +7,18 @@ using Terraria;
 using Newtonsoft.Json;
 using TerrariaApi.Server;
 using Wolfje.Plugins.SEconomy;
+using Mono.Data.Sqlite;
+using MySql.Data.MySqlClient;
+using TShockAPI.DB;
+using System.Data;
+
 namespace Shop
 {
 	[ApiVersion(2, 1)]
 	public class Shop : TerrariaPlugin
 	{
-		private Config config;
+        public static IDbConnection ShopDB;
+        private Config config;
 		public override Version Version
 		{
 			get { return new Version("1.3.0.1"); }
@@ -37,9 +43,45 @@ namespace Shop
 		{
 			TShockAPI.Commands.ChatCommands.Add(new Command(Buy, "buy"));
 			TShockAPI.Commands.ChatCommands.Add(new Command("shop.reload", ReloadConfig, "reloadshop"));
-			ReadConfig();
-		}
-		private static string ItemToTag(SimpleItem args)
+            ReadConfig();
+		
+
+ 
+
+       
+            switch (TShock.Config.StorageType.ToLower())
+            {
+                case "mysql":
+                    string[] host = TShock.Config.MySqlHost.Split(':');
+                    ShopDB = new MySqlConnection()
+                    {
+                        ConnectionString = string.Format("Server={0}; Port={1}; Database={2}; Uid={3}; Pwd={4};",
+                            host[0],
+                            host.Length == 1 ? "3306" : host[1],
+                            TShock.Config.MySqlDbName,
+                            TShock.Config.MySqlUsername,
+                            TShock.Config.MySqlPassword)
+                    };
+                    break;
+                case "sqlite":
+                    string sql = Path.Combine(TShock.SavePath, "ShopHistory.sqlite");
+                    ShopDB = new SqliteConnection(string.Format("uri=file://{0},Version=3", sql));
+                    break;
+            }
+            SqlTableCreator sqlcreator = new SqlTableCreator(ShopDB,
+                ShopDB.GetSqlType() == SqlType.Sqlite ? (IQueryBuilder)new SqliteQueryCreator() : new MysqlQueryCreator());
+            sqlcreator.EnsureTableStructure(new SqlTable("ShopHistory",
+                new SqlColumn("Time", MySqlDbType.Int32),
+                new SqlColumn("Account", MySqlDbType.VarChar) { Length = 50 },
+                new SqlColumn("ItemName", MySqlDbType.String, 70),
+                new SqlColumn("WorldID", MySqlDbType.Int32),
+                new SqlColumn("Price", MySqlDbType.String, 100)));
+        }
+
+        
+
+
+        private static string ItemToTag(SimpleItem args)
 		{
 			string ret = ((args.prefix != 0) ? "[i/p" +args.prefix : "[i");
 			ret = (args.stack != 1) ? ret + "/s" + args.stack : ret;
@@ -47,36 +89,36 @@ namespace Shop
 			if (args.netID == 0) return "";
 			return ret;
 		}
-		private void Buy(CommandArgs args)
-		{
-			if ((args.Parameters.Count < 1) || ((args.Parameters.Count > 1)  && (args.Parameters[0] != "menu")))
-			{
-				args.Player.SendErrorMessage("Check out our Shop, use: /buy name or /buy menu");
-				return;
-			}
-			if (args.Parameters[0] == "menu")
-			{
-				int pageNumber = 1;
-				if (!PaginationTools.TryParsePageNumber(args.Parameters, 1, args.Player, out pageNumber))
-					return;
-				var lines = new List<string>{};
-				foreach (var gooda in config.All)
-				{
-					string total = "* " + gooda.DisplayName + " - ";
-					foreach (var item in gooda.IncludeItems)
-					{
-						total = total + ItemToTag(item) +" - "+ Wolfje.Plugins.SEconomy.Money.Parse(Convert.ToString(gooda.Price));
-					}
-					if (args.Player.Group.HasPermission(gooda.RequirePermission))
-					{
-						lines.Add(total);
-					}
-					else if (!config.HideUnavailableGoods)
-					{
-						string perm = args.Player.Group.HasPermission(gooda.RequirePermission) ? "[Available]" : "[Shortage]";
-						lines.Add(perm + total);
-					}
-				}
+        private void Buy(CommandArgs args)
+        {
+            if ((args.Parameters.Count < 1) || ((args.Parameters.Count > 1) && (args.Parameters[0] != "menu")))
+            {
+                args.Player.SendErrorMessage("Check out our Shop, use: /buy name or /buy menu");
+                return;
+            }
+            if (args.Parameters[0] == "menu")
+            {
+                int pageNumber = 1;
+                if (!PaginationTools.TryParsePageNumber(args.Parameters, 1, args.Player, out pageNumber))
+                    return;
+                var lines = new List<string> { };
+                foreach (var gooda in config.All)
+                {
+                    string total = "* " + gooda.DisplayName + " - ";
+                    foreach (var item in gooda.IncludeItems)
+                    {
+                        total = total + ItemToTag(item) + " - " + Wolfje.Plugins.SEconomy.Money.Parse(Convert.ToString(gooda.Price));
+                    }
+                    if (args.Player.Group.HasPermission(gooda.RequirePermission))
+                    {
+                        lines.Add(total);
+                    }
+                    else if (!config.HideUnavailableGoods)
+                    {
+                        string perm = args.Player.Group.HasPermission(gooda.RequirePermission) ? "[Available]" : "[Shortage]";
+                        lines.Add(perm + total);
+                    }
+                }
                 PaginationTools.SendPage(args.Player, pageNumber, lines,
                                          new PaginationTools.Settings
                                          {
@@ -85,63 +127,72 @@ namespace Shop
                                              MaxLinesPerPage = 9
                                          }
                                         );
-				return;
-			}
-			var Find = new Goods();
-			bool FindSuccess = false;
-			foreach (var i1 in config.All)
-			{
-				if (args.Parameters[0] == i1.DisplayName)
-				{
-					Find = i1;
-					FindSuccess = true;
-				}
-			}
-			if ((!FindSuccess) || (!args.Player.Group.HasPermission(Find.RequirePermission) && config.HideUnavailableGoods))
-			{
-				args.Player.SendErrorMessage("Can't find a good with given name. Type /buy menu for list.");
-				return;
-			}
-			if (!args.Player.Group.HasPermission(Find.RequirePermission))
-			{
-				args.Player.SendErrorMessage("There is a shortage! Why not try another goods?");
-				return;
-			}
-			var UsernameBankAccount = SEconomyPlugin.Instance.GetBankAccount(args.Player.Name);
-			var playeramount = UsernameBankAccount.Balance;
-			Money amount = -Find.Price;
-			Money amount2 = Find.Price;
-			var Journalpayment = Wolfje.Plugins.SEconomy.Journal.BankAccountTransferOptions.AnnounceToSender;
-			if (args.Player == null || UsernameBankAccount == null)
-			{
-				args.Player.SendErrorMessage("Can't find the account for {0}.", args.Player.Name);
-				return;
-			}
-			if (playeramount < amount2)
-			{
-				args.Player.SendErrorMessage("The price of " + Find.DisplayName + " is " + Find.Price	 + " copper, but you only have " + UsernameBankAccount.Balance + " in you account.");
-				return;
-			}
-			if (!args.Player.InventorySlotAvailable)
-			{
-				args.Player.SendErrorMessage("Your inventory is full.");
-				return;
-			}
-			SEconomyPlugin.Instance.WorldAccount.TransferToAsync(UsernameBankAccount, amount,
-			                                                     Journalpayment, string.Format("Pay {0} to shop", amount2),
-			                                                     string.Format("Buying" + Find.DisplayName));
-			args.Player.SendSuccessMessage("You have paid {0} to buy {1}.", amount2, Find.DisplayName);
-			TShock.Log.ConsoleInfo("{0} has paid {2} to buy {1}.", args.Player.Name, Find.DisplayName, amount2);
-			foreach (var item in Find.IncludeItems)
-			{
-				var q = new Item();
-				q.netDefaults(item.netID);
-				q.stack = item.stack;
-				q.Prefix(item.prefix);
-				args.Player.GiveItemCheck(q.type, q.Name, q.width, q.height, q.stack, q.prefix);
-			}
-		}
-		private void CreateConfig()
+                return;
+            }
+            var Find = new Goods();
+            bool FindSuccess = false;
+            foreach (var i1 in config.All)
+            {
+                if (args.Parameters[0] == i1.DisplayName)
+                {
+                    Find = i1;
+                    FindSuccess = true;
+                }
+            }
+            if ((!FindSuccess) || (!args.Player.Group.HasPermission(Find.RequirePermission) && config.HideUnavailableGoods))
+            {
+                args.Player.SendErrorMessage("Can't find a good with given name. Type /buy menu for list.");
+                return;
+            }
+            if (!args.Player.Group.HasPermission(Find.RequirePermission))
+            {
+                args.Player.SendErrorMessage("There is a shortage! Why not try another goods?");
+                return;
+            }
+            var UsernameBankAccount = SEconomyPlugin.Instance.GetBankAccount(args.Player.Name);
+            var playeramount = UsernameBankAccount.Balance;
+            Money amount = -Find.Price;
+            Money amount2 = Find.Price;
+            var amount3 = Wolfje.Plugins.SEconomy.Money.Parse(Convert.ToString(amount2));
+            var Journalpayment = Wolfje.Plugins.SEconomy.Journal.BankAccountTransferOptions.AnnounceToSender;
+            if (args.Player == null || UsernameBankAccount == null)
+            {
+                args.Player.SendErrorMessage("Can't find the account for {0}.", args.Player.Name);
+                return;
+            }
+            if (playeramount < amount2)
+            {
+                args.Player.SendErrorMessage("The price of " + Find.DisplayName + " is " + Wolfje.Plugins.SEconomy.Money.Parse(Convert.ToString(Find.Price)) + " , but you only have " + UsernameBankAccount.Balance + " in your account.");
+                return;
+            }
+            if (!args.Player.InventorySlotAvailable)
+            {
+                args.Player.SendErrorMessage("Your inventory is full.");
+                return;
+            }
+            SEconomyPlugin.Instance.WorldAccount.TransferToAsync(UsernameBankAccount, amount,
+                                                                 Journalpayment, string.Format("Pay {0} to shop", amount2),
+                                                                 string.Format("Buying " + Find.DisplayName));
+            args.Player.SendSuccessMessage("You have paid {0} to buy {1}.", amount2, Find.DisplayName);
+            TShock.Log.ConsoleInfo("{0} has paid {2} to buy {1}.", args.Player.Name, Find.DisplayName, amount2);
+            foreach (var item in Find.IncludeItems)
+            {
+                var q = new Item();
+                q.netDefaults(item.netID);
+                q.stack = item.stack;
+                q.Prefix(item.prefix);
+                args.Player.GiveItemCheck(q.type, q.Name, q.width, q.height, q.stack, q.prefix);
+            }
+            var num = ShopDB.Query("INSERT INTO ShopHistory (Time, Account, ItemName, WorldID, price) VALUES (@0, @1, @2, @3, @4);", DateTime.Now, args.Player.Name, Find.DisplayName, Main.worldID, amount3);
+           
+
+        }
+
+
+
+
+
+        private void CreateConfig()
 		{
 			string filepath = Path.Combine(TShock.SavePath, "Shop.json");
 			try
