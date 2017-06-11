@@ -138,7 +138,6 @@ namespace Shop
                 medname = medname + " "+ args.Parameters[i];
 
             }
-            args.Player.SendErrorMessage(medname);
             foreach (var i1 in config.All)
             {
                 
