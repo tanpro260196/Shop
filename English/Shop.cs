@@ -91,7 +91,7 @@ namespace Shop
 		}
         private void Buy(CommandArgs args)
         {
-            if ((args.Parameters.Count < 1) || ((args.Parameters.Count > 1) && (args.Parameters[0] != "menu")))
+            if ((args.Parameters.Count < 1))
             {
                 args.Player.SendErrorMessage("Check out our Shop, use: /buy name or /buy menu");
                 return;
@@ -131,14 +131,28 @@ namespace Shop
             }
             var Find = new Goods();
             bool FindSuccess = false;
+            int number = args.Parameters.Count;
+            string medname = args.Parameters[0];
+            for (int i = 1; i < number; i++)
+            {
+                medname = medname + " "+ args.Parameters[i];
+
+            }
+            args.Player.SendErrorMessage(medname);
             foreach (var i1 in config.All)
             {
-                if (args.Parameters[0] == i1.DisplayName)
+                
+                
+                if (medname.ToLower() == i1.DisplayName.ToLower())
                 {
                     Find = i1;
                     FindSuccess = true;
                 }
+
             }
+
+
+
             if ((!FindSuccess) || (!args.Player.Group.HasPermission(Find.RequirePermission) && config.HideUnavailableGoods))
             {
                 args.Player.SendErrorMessage("Can't find a good with given name. Type /buy menu for list.");
@@ -149,27 +163,40 @@ namespace Shop
                 args.Player.SendErrorMessage("There is a shortage! Why not try another goods?");
                 return;
             }
+
+
+
             var UsernameBankAccount = SEconomyPlugin.Instance.GetBankAccount(args.Player.Name);
             var playeramount = UsernameBankAccount.Balance;
             Money amount = -Find.Price;
             Money amount2 = Find.Price;
             var amount3 = Wolfje.Plugins.SEconomy.Money.Parse(Convert.ToString(amount2));
             var Journalpayment = Wolfje.Plugins.SEconomy.Journal.BankAccountTransferOptions.AnnounceToSender;
+
+            
+
             if (args.Player == null || UsernameBankAccount == null)
             {
                 args.Player.SendErrorMessage("Can't find the account for {0}.", args.Player.Name);
                 return;
             }
+
             if (playeramount < amount2)
             {
                 args.Player.SendErrorMessage("The price of " + Find.DisplayName + " is " + Wolfje.Plugins.SEconomy.Money.Parse(Convert.ToString(Find.Price)) + " , but you only have " + UsernameBankAccount.Balance + " in your account.");
                 return;
             }
+
+
+
             if (!args.Player.InventorySlotAvailable)
             {
                 args.Player.SendErrorMessage("Your inventory is full.");
                 return;
             }
+
+
+
             SEconomyPlugin.Instance.WorldAccount.TransferToAsync(UsernameBankAccount, amount,
                                                                  Journalpayment, string.Format("Pay {0} to shop", amount2),
                                                                  string.Format("Buying " + Find.DisplayName));
